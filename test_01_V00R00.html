@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Network Graph</title>
+    
+    <!-- Vis.js library from CDN -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vis-network@9.0.0/dist/vis-network.min.js"></script>
+    
+    <!-- Inline CSS for the page styling -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            color: #333;
+            margin: 20px 0;
+        }
+
+        #network {
+            width: 100%;
+            height: 600px;
+            border: 1px solid lightgray;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>University Study Program Network</h1>
+    <!-- Container where the graph will be displayed -->
+    <div id="network"></div>
+
+    <!-- Inline JavaScript for the graph -->
+    <script type="text/javascript">
+        // Create a dataset for nodes (study programs)
+        const nodes = new vis.DataSet([
+            { id: 1, label: 'Computer Science' },
+            { id: 2, label: 'Software Engineering' },
+            { id: 3, label: 'Data Science' }
+        ]);
+
+        // Create a dataset for edges (connections between programs)
+        const edges = new vis.DataSet([
+            { from: 1, to: 2, label: 'Similarity: 0.8' },
+            { from: 2, to: 3, label: 'Similarity: 0.6' }
+        ]);
+
+        // Define the network container (where the graph will be displayed)
+        const container = document.getElementById('network');
+
+        // Define the data for the network
+        const data = {
+            nodes: nodes,
+            edges: edges
+        };
+
+        // Define options for the network visualization
+        const options = {
+            physics: {
+                enabled: true
+            },
+            nodes: {
+                shape: 'dot',        // Shape of nodes
+                size: 20,            // Size of nodes
+                font: { size: 15 }   // Font size for labels
+            },
+            edges: {
+                smooth: true,        // Smooth edges between nodes
+                font: { size: 14 }   // Font size for edge labels
+            }
+        };
+
+        // Initialize the network
+        const network = new vis.Network(container, data, options);
+    </script>
+
+</body>
+</html>
