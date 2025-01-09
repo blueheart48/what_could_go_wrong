@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Graph from Google Sheets</title>
+    <!-- Vis.js library from CDN -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vis-network@9.0.0/dist/vis-network.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            color: #333;
+            margin: 20px 0;
+        }
+
+        #network {
+            width: 100%;
+            height: 600px;
+            border: 1px solid lightgray;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Network Graph from Google Sheets</h1>
+    <div id="network">Loading...</div>
+
+    <script>
+        // URLs for nodes and links data
+        const nodesUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0mpM0shKdvLdihfKPRbJTTJ1CnSitnYg4m52ii1j9AIceX2LVarCOAz349ngjCKt6cauDk77zTi42/pub?output=csv';
+        const linksUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRoMO9ztDRUdP6HJeZ-yRJ1n3Hhh1uGpMBL-dxO6kEE9-4_yZ0Xazp7yGySEw07PU8kNJD97F5v6M7s/pub?output=csv';
+
+        async function fetchCSV(url) {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            const text = await response.text();
+            return text.split('\n').map(row => row.split(','));
+        }
+
+        async function createNetwork() {
+            try {
+                // Fetch nodes and links data
+                const [nodesData, linksData] = await Promise.all([
+                    fetchCSV(nodesUrl),
+                    fetchCSV(linksUrl)
+                ]);
+
+                // Process nodes
+                const nodes = nodesData.map(row => ({
+                    id: Number(row[0]),
+                    label: row[1]
+                }));
+
+                // Process links
+                const edges = linksData.map(row => ({
+                    from: Number(row[0]),
+                    to: Number(row[1]),
+                    label: row[2] || ''
+                }));
+
+                // Create network
+                const container = document.getElementById('network');
+                const data = {
+                    nodes: new vis.DataSet(nodes),
+                    edges: new vis.DataSet(edges)
+                };
+                const options = {
+                    physics: {
+                        enabled: true
+                    },
+                    nodes: {
+                        shape: 'dot',
+                        size: 20,
+                        font: { size: 15 }
+                    },
+                    edges: {
+                        smooth: true,
+                        font: { size: 14 }
+                    },
+                    layout: {
+                        improvedLayout: true
+                    }
+                };
+
+                const network = new vis.Network(container, data, options);
+
+                // Center and stabilize the network
+                network.once('stabilizationIterationsDone', function () {
+                    network.fit({ animation: true });
+                });
+            } catch (error) {
+                console.error('Error creating the network:', error);
+                document.getElementById('network').textContent = 'Error loading network data';
+            }
+        }
+
+        // Initialize the network graph
+        createNetwork();
+    </script>
+</body>
+</html>
