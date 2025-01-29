@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        table {
+            width: 80%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ffffff;
+            padding: 0px;
+            text-align: left;
+            line-height: 0;
+        }
+        th {
+            background-color: #ffffff;
+        }
+
+        .circle {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%; /* Macht das Element rund */
+      }
+      #c1 {background-color: #e90000;}
+      #c2 {background-color: #ff6100;}
+      #c3 {background-color: #fff500;}
+      #c4 {background-color: #05fb00;}
+      #c5 {background-color: #31d5c8;}
+      #c6 {background-color: #33a7c8;}
+      #c7 {background-color: #001eba;}
+      #c8 {background-color: #a538c6;}
+
+        .square {
+            width: 20px;
+            height: 20px;
+            background-color: rgb(0, 0, 0);
+        }
+
+        #network {
+            width: 80%;
+            height: 800px;
+            border: 1px solid lightgray;
+            margin-top: 20px;
+        }
+
+        #categoryFilter {
+            color: white; 
+            background-color: #0028A5;
+            font-size: 16px;
+            border: none;
+            padding: 8px;
+        }
+        .dropdown-content option {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+        
+
+    </style>
+</head>
+
+
+<body>
+    <h1>DISCOVERY "DRACARYS" V01R03</h1>
+    <table>
+        <tr>
+          <td><div class="square" ></div></td>
+          <td><p> Schulfach </p></td>
+          <td> <div class="circle" id="c1"></div></td>
+          <td><p>Geschichts- und Kulturwissenschaften</p></td>
+          <td> <div class="circle" id="c2"></div></td>
+          <td><p>Mathematik und Informatik</p></td>
+        </tr>
+        <tr>
+            <td> <div class="circle" id="c3"></div></td>
+            <td><p>Medizin und Gesundheit</p></td>
+            <td> <div class="circle" id="c4"></div></td>
+            <td><p>Naturwissenschaften</p></td>
+            <td> <div class="circle" id="c5"></div></td>
+            <td><p>Rechts- und Wirtschaftswissenschaft</p></td>
+        </tr>
+        <tr>
+            <td> <div class="circle" id="c6"></div></td>
+            <td><p>Sozialwissenschaften und Pädagogik </p></td>
+            <td> <div class="circle" id="c7"></div></td>
+            <td><p>Sprach- und Literaturwissenschaften</p></td>
+            <td> <div class="circle" id="c8"></div></td>
+            <td><p>Theologie und Religionswissenschaft</p></td>
+        </tr>
+      </table> 
+
+
+
+
+    <div>
+        <label for="categoryFilter"></label>
+        <select id="categoryFilter">
+            <div class="dropdown-content">
+                <option value="all">-- Wählen Sie einen Fachbereich --</option>
+                <option value="Geschichts_und_Kulturwissenschaften">Geschichts- und Kulturwissenschaften</option>
+                <option value="Mathematik_und_Informatik">Mathematik und Informatik</option>
+                <option value="Medizin_und_Gesundheit">Medizin und Gesundheit</option>
+                <option value="Naturwissenschaften">Naturwissenschaften</option>
+                <option value="Rechts_und_Wirtschaftswissenschaft">Rechts- und Wirtschaftswissenschaft</option>
+                <option value="Sozialwissenschaften_und_Pädagogik">Sozialwissenschaften und Pädagogik</option>
+                <option value="Sprach_und_Literaturwissenschaften">Sprach- und Literaturwissenschaften</option>
+                <option value="Theologie_und_Religionswissenschaft">Theologie und Religionswissenschaft</option>
+            </div>
+        </select>
+    </div>
+    <div id="network"></div>
+
+    <div> 
+        <p id="i_second_key"></p>
+        <h2>Subset Nodes</h2>
+        <table id="i_sub_set_nodes">
+            <!-- Table will be dynamically generated -->
+        </table>
+    </div>
+
+
+    <script>
+        async function fetchCSVData(url) {
+            const response = await fetch(url);
+            const text = await response.text();
+            // Parse the CSV text into an array of objects
+            const rows = text.split('\n').map(row => row.split(','));
+            const headers = rows[0];
+            return rows.slice(1).map(row => {
+                return row.reduce((acc, value, index) => {
+                    acc[headers[index].trim()] = value.trim();
+                    return acc;
+        }, {});
+    });
+}
+
+async function initializeData() {
+    const nodesURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSva-wFMH0lTr08IcteWK2TRgC6b4qqY9MaBrEZgzEgF1RLdtUK8gRfJRDC_rax58pQwoUQog4u3CWC/pub?output=csv';
+    const linksURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQq43Bd51siR1Ng795dG_R1jSARAI1zvIFaM0Nq13iEkG4FCyCNEZWdcJTxphbw63yN17Sv0B7Cqtuv/pub?output=csv';
+
+    const df_nodes_originals = await fetchCSVData(nodesURL);
+    const df_links_originals = await fetchCSVData(linksURL);
+
+
+
+
+    const dropdown = document.getElementById('categoryFilter');
+    dropdown.addEventListener('change', () => updateFilteredTable(df_nodes_originals, df_links_originals));
+
+    updateFilteredTable(df_nodes_originals, df_links_originals);
+}
+
+function renderTable(data, element) {
+    const table = document.getElementById(element);
+    table.innerHTML = '';
+
+    if (!data.length) return;
+
+    const headerRow = document.createElement('tr');
+    Object.keys(data[0]).forEach(key => {
+        const th = document.createElement('th');
+        th.textContent = key;
+        headerRow.appendChild(th);
+    });
+    table.appendChild(headerRow);
+
+    data.forEach(row => {
+        const tableRow = document.createElement('tr');
+        Object.values(row).forEach(cell => {
+            const td = document.createElement('td');
+            td.textContent = cell;
+            tableRow.appendChild(td);
+        });
+        table.appendChild(tableRow);
+    });
+}
+
+function updateFilteredTable(df_nodes_originals, df_links_originals) {
+    const selectedValue = document.getElementById('categoryFilter').value;
+    const filteredData = selectedValue === 'all' 
+        ? df_nodes_originals 
+        : df_nodes_originals.filter(row => row.Tb === selectedValue);
+
+
+    const first_key = filteredData.map(row => row.id);
+
+    const filteredData2 = df_links_originals.filter(row => first_key.includes(row.from) || first_key.includes(row.to));
+
+
+    const KEY2 = [...new Set(filteredData2.flatMap(row => [row.from, row.to]))];
+ 
+    const filteredData3 = df_nodes_originals.filter(row => KEY2.includes(row.id));
+   // renderTable(filteredData3, "i_sub_set_nodes");
+
+    // Render Network Graph
+    renderNetwork(filteredData3, filteredData2);
+}
+
+function renderNetwork(nodesData, linksData) {
+    // Convert nodes and edges to vis DataSets
+    const nodes = new vis.DataSet(nodesData.map(node => ({
+        id: node.id,
+        label: node.label,
+        group: node.Tb,
+    })));
+
+    const edges = new vis.DataSet(linksData.map(link => ({
+        from: link.from,
+        to: link.to,
+    })));
+
+    const container = document.getElementById('network');
+    const data = { nodes: nodes, edges: edges };  // Ensure nodes & edges are DataSets
+    const options = {
+        nodes: {
+            shape: 'dot',
+            size: 10,
+            opacity: 1,
+            chosen: false,
+            font: { 
+                size: 20
+                    }
+        },
+        edges: {
+            smooth: false,
+            arrows: { to: true },
+            arrowStrikethrough: true,
+            chosen: true,
+        },
+        physics: {
+            enabled: true,
+            barnesHut: {
+                gravitationalConstant: -30000,
+                centralGravity: 0,
+                damping: 1,
+                avoidOverlap: 0.5,
+                springLength: 80
+            },
+        },
+        groups: {
+            Schulfach: {
+                shape: "square",
+                color: "#000000", 
+            },
+            Geschichts_und_Kulturwissenschaften: {
+                color: "#e90000", 
+            },
+            Mathematik_und_Informatik: {
+                color: "#ff6100", 
+            },
+            Medizin_und_Gesundheit: {
+                color: "#fff500", 
+            },
+            Naturwissenschaften: {
+                color: "#05fb00", 
+            },
+            Rechts_und_Wirtschaftswissenschaft: {
+                color: "#31d5c8", 
+            },
+            Sozialwissenschaften_und_Pädagogik: {
+                color: "#33a7c8", 
+            },
+            Sprach_und_Literaturwissenschaften: {
+                color: "#001eba", 
+            },
+            Theologie_und_Religionswissenschaft: {
+                color: "#a538c6", 
+            },
+        },
+    };
+
+    const network = new vis.Network(container, data, options);
+
+    // Event listener for node click
+    network.on("click", function (params) {
+        if (params.nodes.length > 0) {
+            var allNodes = nodes.get();
+            var clickedNodeId = params.nodes[0]; // Ensure a node was clicked
+            console.log("Clicked Node ID:", clickedNodeId);
+            var connectedNodeIds = network.getConnectedNodes(clickedNodeId);
+            console.log("Connected Node ID:", connectedNodeIds);
+            var connectedNodeSet = new Set(connectedNodeIds);
+            var unconnectedNodeIds = allNodes
+            .filter(node => node.id !== clickedNodeId && !connectedNodeSet.has(node.id))
+            .map(node => node.id); // Extract only the ID
+
+        // Log the array of unconnected node IDs
+        console.log("Unconnected Node IDs:", unconnectedNodeIds);
+
+
+        var connectedEdgeIds = network.getConnectedEdges(clickedNodeId); // Connected edges
+        
+        // Get all edges
+        var allEdges = data.edges.get();
+
+        // Convert connected edges to a Set for quick lookup
+        var connectedEdgeSet = new Set(connectedEdgeIds);
+
+        // Reset all edges first (set opacity back to normal)
+        allEdges.forEach(edge => {
+            data.edges.update({ id: edge.id, color: { opacity: 1 } });
+        });
+
+        // Decrease opacity of unconnected edges
+        allEdges.forEach(edge => {
+            if (!connectedEdgeSet.has(edge.id)) {
+                data.edges.update({ id: edge.id, color: { opacity: 0.1 } });
+            }
+        });
+
+            // Reset all nodes:
+            nodes.forEach(function (node){
+                nodes.update({ 
+                    id: node.id, 
+                    opacity: 0.1,
+                    font: { 
+                        color: '#DADADA',
+                        strokeWidth: 0,
+                        background: 'none'
+                    }
+                });
+            })
+
+            // Set clicked node
+            nodes.update({ 
+                id: clickedNodeId,
+                opacity: 1, 
+                  font: {  
+                    color: 'black',
+                    strokeWidth: 1, // px
+                    strokeColor: '#000000',
+                    background: '#FFFFFF',
+                }
+            });
+
+            // Set conected nodes
+            //console.log("Connected Node ID:", connectedNodeIds[0]);
+            connectedNodeIds.forEach(function (NID)
+            {
+                data.nodes.update({
+                    id: NID, 
+                    opacity: 1,
+                    font: {
+                        color: 'black',  
+                        strokeWidth: 1, // px
+                        strokeColor: '#000000',
+                        background: '#FFFFFF',
+                    }
+                });
+            })
+
+
+
+
+
+
+        }
+        else{
+            // Reset all nodes:
+            nodes.forEach(function (node) {
+                nodes.update({ 
+                    id: node.id, 
+                    opacity: 1,
+                    font: { 
+                        color: 'black',
+                        strokeWidth: 0,
+                        background: 'none'
+
+                    }
+                });
+            })
+
+            data.edges.forEach(function (edge) {
+            data.edges.update({ id: edge.id, color: { opacity: 1 } });
+        });
+
+
+
+        }
+
+
+    });
+}
+
+
+initializeData();
+
+          
+        </script>
+    </body>
+    
+</html>
