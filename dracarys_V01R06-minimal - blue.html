@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        table {
+            width: 80%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ffffff;
+            padding: 0px;
+            text-align: left;
+            line-height: 0;
+        }
+        th {
+            background-color: #ffffff;
+        }
+
+        .circle {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%; /* Macht das Element rund */
+      }
+      #c1 {background-color: #0028A5;}
+      #c2 {background-color: #BF0D3E;}
+      #c3 {background-color: #A5D233;}
+      #c4 {background-color: #F78CAA;}
+      #c5 {background-color: #4AC9E3;}
+      #c6 {background-color: #3062FF;}
+      #c7 {background-color: #7596FF;}
+      #c8 {background-color: #BD3902;}
+
+        .square {
+            width: 20px;
+            height: 20px;
+            background-color: #7596FF;
+        }
+
+        #network {
+            width: 80%;
+            height: 800px;
+            border: 1px solid lightgray;
+            margin-top: 20px;
+        }
+
+        #categoryFilter, #nodeSelect {
+            color: white; 
+            background-color: #0028A5;
+            font-size: 16px;
+            border: none;
+            padding: 8px;
+        }
+        .dropdown-content option {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+        
+
+    </style>
+</head>
+
+
+<body>
+    <h1>DISCOVERY "DRACARYS" V01R06 - Minimal - blau</h1>
+    <div id="network"></div>
+
+
+
+
+
+
+    <table>
+        <tr>
+          <td><div class="square" ></div></td>
+          <td><p> Schulfach </p></td>
+          <td> <div class="circle" id="c1"></div></td>
+          <td><p>Studienprogramm</p></td>
+      </table> 
+
+    <div>
+        <label for="categoryFilter"></label>
+        <select id="categoryFilter">
+            <div class="dropdown-content">
+                <option value="all">-- Wählen Sie einen Fachbereich --</option>
+                <option value="Geschichts_und_Kulturwissenschaften">Geschichts- und Kulturwissenschaften</option>
+                <option value="Mathematik_und_Informatik">Mathematik und Informatik</option>
+                <option value="Medizin_und_Gesundheit">Medizin und Gesundheit</option>
+                <option value="Naturwissenschaften">Naturwissenschaften</option>
+                <option value="Rechts_und_Wirtschaftswissenschaft">Rechts- und Wirtschaftswissenschaft</option>
+                <option value="Sozialwissenschaften_und_Pädagogik">Sozialwissenschaften und Pädagogik</option>
+                <option value="Sprach_und_Literaturwissenschaften">Sprach- und Literaturwissenschaften</option>
+                <option value="Theologie_und_Religionswissenschaft">Theologie und Religionswissenschaft</option>
+            </div>
+        </select>
+    </div>
+    <div>
+        <p>
+            
+        </p>
+    </div>
+
+    <label for="nodeSelect"></label>
+    <select id="nodeSelect">
+        <div class="dropdown-content">
+            <option value="SF Bildnerisches Gestalten">SF Bildnerisches Gestalten</option>
+            <option value="SF Biologie">SF Biologie</option>
+            <option value="SF Chemie">SF Chemie</option>
+            <option value="SF Deutsch">SF Deutsch</option>
+            <option value="SF Englisch">SF Englisch</option>
+            <option value="SF Französisch">SF Französisch</option>
+            <option value="SF Geografie">SF Geografie</option>
+            <option value="SF Geschichte">SF Geschichte</option>
+            <option value="SF Griechisch">SF Griechisch</option>
+            <option value="SF ICT und Informatik">SF ICT und Informatik</option>
+            <option value="SF Instrumentalunterricht">SF Instrumentalunterricht</option>
+            <option value="SF Italienisch">SF Italienisch</option>
+            <option value="SF Latein">SF Latein</option>
+            <option value="SF Mathematik">SF Mathematik</option>
+            <option value="SF Musik">SF Musik</option>
+            <option value="SF Philosophie">SF Philosophie</option>
+            <option value="SF Physik">SF Physik</option>
+            <option value="SF Psychologie und Pädagogik">SF Psychologie und Pädagogik</option>
+            <option value="SF Religion">SF Religion</option>
+            <option value="SF Russisch">SF Russisch</option>
+            <option value="SF Spanisch">SF Spanisch</option>
+            <option value="SF Sport">SF Sport</option>
+            <option value="SF Wirtschaft und Recht">SF Wirtschaft und Recht</option>
+        </div>
+    </select>
+
+
+
+
+    <div> 
+        <p id="i_second_key"></p>
+        <table id="i_sub_set_nodes">
+            <!-- Table will be dynamically generated -->
+        </table>
+    </div>
+
+
+    <script>
+        async function fetchCSVData(url) {
+            const response = await fetch(url);
+            const text = await response.text();
+            // Parse the CSV text into an array of objects
+            const rows = text.split('\n').map(row => row.split(','));
+            const headers = rows[0];
+            return rows.slice(1).map(row => {
+                return row.reduce((acc, value, index) => {
+                    acc[headers[index].trim()] = value.trim();
+                    return acc;
+        }, {});
+    });
+}
+
+async function initializeData() {
+
+    // Nodes V04 & Nodes V03
+    const nodesURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSO8_SNiFz2Ewfo0HxgIT_bju-Zr0hAP5aTrs12WjiVxe9qmWK0bA-UG17cvJ4YBSD1cn0Zfoej_01u/pub?output=csv';
+    const linksURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQr6NKzEM3drA7x5WckzkHVsKcUxxXv1j7LVM74A66GT5BrwaBSdFk3YEsHH1V2Vvc5zWPSmiPcltrg/pub?output=csv';
+
+    const df_nodes_originals = await fetchCSVData(nodesURL);
+    const df_links_originals = await fetchCSVData(linksURL);
+
+
+
+
+    const dropdown = document.getElementById('categoryFilter');
+    dropdown.addEventListener('change', () => updateFilteredTable(df_nodes_originals, df_links_originals));
+
+    updateFilteredTable(df_nodes_originals, df_links_originals);
+}
+
+function renderTable(data, element) {
+    const table = document.getElementById(element);
+    table.innerHTML = '';
+
+    if (!data.length) return;
+
+    const headerRow = document.createElement('tr');
+    Object.keys(data[0]).forEach(key => {
+        const th = document.createElement('th');
+        th.textContent = key;
+        headerRow.appendChild(th);
+    });
+    table.appendChild(headerRow);
+
+    data.forEach(row => {
+        const tableRow = document.createElement('tr');
+        Object.values(row).forEach(cell => {
+            const td = document.createElement('td');
+            td.textContent = cell;
+            tableRow.appendChild(td);
+        });
+        table.appendChild(tableRow);
+    });
+}
+
+function updateFilteredTable(df_nodes_originals, df_links_originals) {
+    const selectedValue = document.getElementById('categoryFilter').value;
+    const filteredData = selectedValue === 'all' 
+        ? df_nodes_originals 
+        : df_nodes_originals.filter(row => row.Tb === selectedValue);
+
+
+    const first_key = filteredData.map(row => row.id);
+
+    const filteredData2 = df_links_originals.filter(row => first_key.includes(row.from) || first_key.includes(row.to));
+
+
+    const KEY2 = [...new Set(filteredData2.flatMap(row => [row.from, row.to]))];
+ 
+    const filteredData3 = df_nodes_originals.filter(row => KEY2.includes(row.id));
+   // renderTable(filteredData3, "i_sub_set_nodes");
+
+    // Render Network Graph
+    renderNetwork(filteredData3, filteredData2);
+}
+
+function renderNetwork(nodesData, linksData) {
+    // Convert nodes and edges to vis DataSets
+    const nodes = new vis.DataSet(nodesData.map(node => ({
+        id: node.id,
+        label: node.label,
+        group: node.Tb,
+        url: node.url,
+
+    })));
+
+    const edges = new vis.DataSet(linksData.map(link => ({
+        from: link.from,
+        to: link.to,
+    })));
+
+    const container = document.getElementById('network');
+    const data = { nodes: nodes, edges: edges };  // Ensure nodes & edges are DataSets
+    const options = {
+        nodes: {
+            shape: 'dot',
+            size: 10,
+            opacity: 1,
+            chosen: false,
+            font: { 
+                size: 20,
+                background: '#FFFFFF',
+                    },
+            color: {},
+
+        },
+        edges: {
+            smooth: false,
+            //arrows: { to: true },
+            //arrowStrikethrough: true,
+            chosen: true,
+            color: {
+                color:'#0028A5',
+                highlight: '#F3AB00'
+            },
+            width: 1.5,
+            //hoverWidth: 20,
+        },
+        physics: {
+            enabled: true,
+            barnesHut: {
+                gravitationalConstant: -30000,
+                centralGravity: 0,
+                damping: 1,
+                avoidOverlap: 0.5,
+                springLength: 140
+            },
+        },
+        groups: {
+            Schulfach: {
+                borderWidth: 0,
+                shape: "square",
+                color: {background: '#7596FF',}, //UZH Gold V4
+            },
+            Geschichts_und_Kulturwissenschaften: {
+                borderWidth: 0,
+                color: {background: '#0028A5',}, //UZH Apple V4s
+            },
+            Mathematik_und_Informatik: {
+                borderWidth: 0,
+                color: {background: '#0028A5',},//UZH Berry
+            },
+            Medizin_und_Gesundheit: {
+                borderWidth: 0,
+                color: {background: '#0028A5',}, //UZH Apple
+            },
+            Naturwissenschaften: {
+                borderWidth: 0,
+                color: {background: '#0028A5',},//UZH Berry V2
+            },
+            Rechts_und_Wirtschaftswissenschaft: {
+                borderWidth: 0,
+                color: {background: '#0028A5',},// UZH Cyan
+            },
+            Sozialwissenschaften_und_Pädagogik: {
+                borderWidth: 0,
+                color: {background: '#0028A5',}, // UZH blau V3
+            },
+            Sprach_und_Literaturwissenschaften: {
+                borderWidth: 0,
+                color: {background: '#0028A5',}, // UZH Blue V2
+            },
+            Theologie_und_Religionswissenschaft: {
+                borderWidth: 0,
+                color: {background: '#0028A5',}, // UZH Orange V4
+            },
+        },
+    };
+
+    const network = new vis.Network(container, data, options);
+
+            // Change node color when selected from dropdown
+    nodeSelect.addEventListener('change', function () {
+      var selectedNodeId = this.value;
+      console.log("selectedNodeId:", selectedNodeId);
+
+      // Highlight selected node in pink
+        nodes.update({ id: selectedNodeId, 
+            color: { 
+                background: '#FC4C02' 
+            }, 
+            font: {
+                color: '#FFFFFF',  
+                background: '#FC4C02',
+                    }
+        });
+    });
+
+        // Add event listener for double-click on a node
+        network.on("doubleClick", function (params) {
+            if (params.nodes.length > 0) {
+                var nodeId = params.nodes[0];  // Get the clicked node ID
+                console.log("Clicked Node ID:", nodeId);
+                var node = nodes.get(nodeId);  // Get node data
+                console.log("content:", node);
+                if (node.url) {
+                    window.open(node.url, "_blank"); // Open the link in a new tab
+                }
+            }
+        });
+
+
+
+    // Event listener for node click
+    network.on("click", function (params) {
+        if (params.nodes.length > 0) {
+            var allNodes = nodes.get();
+            var clickedNodeId = params.nodes[0]; // Ensure a node was clicked
+            console.log("Clicked Node ID:", clickedNodeId);
+            var connectedNodeIds = network.getConnectedNodes(clickedNodeId);
+            console.log("Connected Node ID:", connectedNodeIds);
+            var connectedNodeSet = new Set(connectedNodeIds);
+            var unconnectedNodeIds = allNodes
+            .filter(node => node.id !== clickedNodeId && !connectedNodeSet.has(node.id))
+            .map(node => node.id); // Extract only the ID
+
+        // Log the array of unconnected node IDs
+        console.log("Unconnected Node IDs:", unconnectedNodeIds);
+
+
+        var connectedEdgeIds = network.getConnectedEdges(clickedNodeId); // Connected edges
+        
+        // Get all edges
+        var allEdges = data.edges.get();
+
+        // Convert connected edges to a Set for quick lookup
+        var connectedEdgeSet = new Set(connectedEdgeIds);
+
+        // Reset all edges first (set opacity back to normal)
+        allEdges.forEach(edge => {
+            data.edges.update({ id: edge.id, color: { opacity: 1 } });
+        });
+
+        // Decrease opacity of unconnected edges
+        allEdges.forEach(edge => {
+            if (!connectedEdgeSet.has(edge.id)) {
+                data.edges.update({ id: edge.id, color: { opacity: 0.1 } });
+            }
+        });
+
+            // Reset all nodes:
+            nodes.forEach(function (node){
+                nodes.update({ 
+                    id: node.id, 
+                    opacity: 0.1,
+                    font: { 
+                        color: '#DADADA',
+                        strokeWidth: 0,
+                        background: '#ffffff'
+                    }
+                });
+            })
+
+            // Set clicked node
+            nodes.update({ 
+                id: clickedNodeId,
+                opacity: 1, 
+                  font: {  
+                    color: 'black',
+                    //strokeWidth: 1, // px
+                    //strokeColor: '#000000',
+                    background: '#FFFFFF',
+                },
+                color: {background: '#F3AB00',}
+            });
+
+            // Set conected nodes
+            //console.log("Connected Node ID:", connectedNodeIds[0]);
+            connectedNodeIds.forEach(function (NID)
+            {
+                data.nodes.update({
+                    id: NID, 
+                    opacity: 1,
+                    font: {
+                        color: 'black',  
+                        background: '#FFFFFF',
+                    }
+                });
+            })
+
+
+
+
+
+
+        }
+        else{
+            // Reset all nodes:
+            nodes.forEach(function (node) {
+                nodes.update({ 
+                    id: node.id, 
+                    opacity: 1,
+                    font: { 
+                        color: 'black',
+                        strokeWidth: 0,
+                        //background: 'none'
+
+                    }
+                });
+            })
+
+            data.edges.forEach(function (edge) {
+            data.edges.update({ id: edge.id, color: { opacity: 1 } });
+        });
+
+
+
+        }
+
+
+    });
+}
+
+
+initializeData();
+
+          
+        </script>
+    </body>
+    
+</html>
